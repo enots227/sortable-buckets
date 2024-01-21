@@ -1,0 +1,22 @@
+{
+  "name": "sortable-buckets",
+  "version": "0.0.0",
+  "description": "UI input element that allows you to sort items into buckets",
+  "license": "MIT",
+  "author": {
+    "name": "Stone Sommers",
+    "email": "enots227@gmail.com",
+    "url": "https://github.com/enots227"
+  },
+  "scripts": {},
+  "private": true,
+  "devDependencies": {
+    "@nx/js": "17.2.0",
+    "nx": "17.2.0",
+    "prettier": "^3.1.0",
+    "typescript": "^5.3.3"
+  },
+  "workspaces": [
+    "packages/*"
+  ]
+}

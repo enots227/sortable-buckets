@@ -1,0 +1,9 @@
+{
+    "name": "sortable-buckets-react",
+    "version": "0.0.0",
+    "description": "Headless UI input element for React that allows you to sort items into buckets",
+    "main": "dist/index.js",
+    "scripts": {
+        "build": "tsc index.ts --outDir dist"
+    }
+}
