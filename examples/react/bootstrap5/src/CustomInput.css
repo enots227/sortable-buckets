@@ -18,7 +18,7 @@
 
 .orderable-toggler-groups > div > ul {
   list-style: none;
-  padding: 0.25rem 0.5rem;;
+  padding: 0.25rem 0.5rem;
   margin: 0;
   flex: 1;
 }
@@ -65,14 +65,14 @@
   --bs-btn-bg: #fff;
   --bs-btn-hover-bg: #cdd4db;
   --bs-btn-hover-border-color: #d0d3db;
-  --bs-btn-focus-shadow-rgb: 108,117,125;
+  --bs-btn-focus-shadow-rgb: 108, 117, 125;
   --bs-btn-active-color: #000;
   --bs-btn-active-bg: #e9ecef;
   --bs-btn-active-border-color: #d0d3db;
   --bs-btn-active-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.125);
   --bs-btn-disabled-color: #cdd4db;
   --bs-btn-disabled-bg: transparent;
-  --bs-btn-disabled-border-color: #d0d3db; 
+  --bs-btn-disabled-border-color: #d0d3db;
   --bs-gradient: none;
 }
 
@@ -114,7 +114,9 @@
   background-clip: padding-box;
   border: 1px solid #ced4da;
   appearance: none;
-  transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+  transition:
+    border-color 0.15s ease-in-out,
+    box-shadow 0.15s ease-in-out;
 }
 
 .orderable-toggler-item-dragging {

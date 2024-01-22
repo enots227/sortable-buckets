@@ -1,9 +1,41 @@
 {
-    "name": "sortable-buckets-core",
-    "version": "0.0.0",
-    "description": "Headless UI input element that allows you to sort items into buckets",
-    "main": "dist/index.js",
-    "scripts": {
-        "build": "tsc src/index.ts --outDir dist"
-    }
+  "name": "sortable-buckets-core",
+  "version": "0.0.0",
+  "description": "Headless UI input element that allows you to sort items into buckets",
+  "author": {
+    "name": "Stone Sommers",
+    "email": "enots227@gmail.com"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/enots227/sortable-buckets.git",
+    "directory": "packages/sortable-buckets-core"
+  },
+  "type": "commonjs",
+  "module": "build/lib/index.esm.js",
+  "main": "build/lib/index.js",
+  "types": "build/lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./build/lib/index.d.ts",
+      "import": "./build/lib/index.mjs",
+      "default": "./build/lib/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "sideEffects": false,
+  "engines": {
+    "node": ">=12"
+  },
+  "files": [
+    "build/lib/*",
+    "build/umd/*",
+    "src"
+  ],
+  "scripts": {
+    "build": "pnpm build:rollup && pnpm build:types",
+    "build:rollup": "rollup --config rollup.config.mjs",
+    "build:types": "tsc --emitDeclarationOnly"
+  }
 }
