@@ -2,8 +2,8 @@ import React, { useState } from 'react'
 import {
   createSortableBuckets as createInput,
   addRemainingValues,
+  Options
 } from 'sortable-buckets-core'
-import { Options } from 'sortable-buckets-core/src/types'
 
 export function createSortableBuckets<TValue>(options: Options<TValue>) {
   const [tableRef] = useState(() => ({
