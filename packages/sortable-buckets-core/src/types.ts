@@ -1,19 +1,21 @@
-export type BucketItem<TValue> = {
+export type BucketItem<TItemValue> = {
   title: string
-  value: TValue
-} & (TValue extends ItemID ? { id?: ItemID } : { id: ItemID })
+  value: TItemValue
+} & (TItemValue extends ID ? { id?: ID } : { id: ID })
 
-export type ResolvedBucketItem<TValue> = Omit<BucketItem<TValue>, 'id'> & {
-  id: ItemID
+export type ResolvedBucketItem<TItemValue> = Omit<
+  BucketItem<TItemValue>,
+  'id'
+> & {
+  id: ID
 }
 
 export type Bucket = {
-  title: string
+  id: ID
+  title?: string
 }
 
 export type PartialKeys<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>
-export type RequiredKeys<T, K extends keyof T> = Omit<T, K> &
-  Required<Pick<T, K>>
 export type Updater<T> = T | ((old: T) => T)
 export type OnChangeFn<T> = (updaterOrValue: Updater<T>) => void
 
@@ -22,28 +24,30 @@ export type BucketItemIndexPair = readonly [
   itemIndex: number,
 ]
 
-export type ItemID = string | number
+export type BucketItemIDPair = readonly [bucketId: ID, itemId: ID]
 
-export type InputInstance<TValue> = {
-  initialState: InputState<TValue>
-  onMatrixChange?: (updater: Updater<TValue[][]>) => void
+export type ID = string | number
+
+export type InputInstance<TItemValue> = {
+  initialState: InputState<TItemValue>
+  onMatrixChange?: (updater: Updater<TItemValue[][]>) => void
   isFiltering: () => boolean
   reset: () => void
-  options: ResolvedOptions<TValue>
-  setOptions: (newOptions: Updater<Options<TValue>>) => void
-  getState: () => InputState<TValue>
-  setState: (updater: Updater<InputState<TValue>>) => void
+  options: ResolvedOptions<TItemValue>
+  setOptions: (newOptions: Updater<Options<TItemValue>>) => void
+  getState: () => InputState<TItemValue>
+  setState: (updater: Updater<InputState<TItemValue>>) => void
   getBucket: (bucketIndex: number) => Bucket
   getItemFromIndexPair: (
     indexPair: BucketItemIndexPair
-  ) => ResolvedBucketItem<TValue> | undefined
+  ) => ResolvedBucketItem<TItemValue> | undefined
   /**
    * Get the bucket item from a value
    * @param itemValue The value of the bucket item
    * @returns The bucket item
    */
-  getItem: (id: ItemID | undefined) => ResolvedBucketItem<TValue> | undefined
-  getBuckets: () => BucketElement<TValue>[]
+  getItem: (id: ID | undefined) => ResolvedBucketItem<TItemValue> | undefined
+  getBuckets: () => BucketElement<TItemValue>[]
   /**
    * Moves a value from one bucket to another depending on the adjustment value
    * @param bucketItemIndexPair The posiition of the item to move
@@ -55,67 +59,70 @@ export type InputInstance<TValue> = {
   moveItemToBucket: (
     bucketItemIndexPair: BucketItemIndexPair,
     adjustBucketIndex: number,
-    _itemId?: ItemID
+    _itemId?: ID
   ) => void
+  // Filter
+  clearFilters: () => void
+  setGlobalFilter: (serach: string) => void
+  onFilterEnter: (event: { key: string }) => void
 }
 
-export type InputState<TValue> = {
+export type InputState<TItemValue> = {
   // Core
-  matrix: ItemID[][]
+  matrix: ID[][]
   buckets: Bucket[]
-  items: ResolvedBucketItem<TValue>[]
+  items: ResolvedBucketItem<TItemValue>[]
   dragging: {
-    item: ResolvedBucketItem<TValue>
+    item: ResolvedBucketItem<TItemValue>
     indexPair: BucketItemIndexPair
   } | null
   // Filters
   globalFilter: string
   filterFocusIndex: number
-  filterResults: BucketItemIndexPair[]
+  filterResults: BucketItemIDPair[]
 }
-export type SimpleInputState<TValue> = PartialKeys<
-  Omit<InputState<TValue>, 'items' | 'dragging' | 'filterResults'>,
+export type SimpleInputState<TItemValue> = PartialKeys<
+  Omit<InputState<TItemValue>, 'items' | 'dragging' | 'filterResults'>,
   'globalFilter' | 'filterFocusIndex'
-> & { items: BucketItem<TValue>[] }
+> & { items: BucketItem<TItemValue>[] }
 
-export type onStateChange<TValue> = OnChangeFn<InputState<TValue>>
-export type Options<TValue> = {
-  state: InputState<TValue>
+export type onStateChange<TItemValue> = OnChangeFn<InputState<TItemValue>>
+export type Options<TItemValue> = {
+  state: InputState<TItemValue>
   remainingBucket?: number
   debugAll?: boolean
   debugInput?: boolean
-  _onGetDomElement?: (itemId: ItemID) => HTMLElement | undefined
-  _onSetDomElement?: (
-    itemId: ItemID,
+  _onGetDomItemElement?: (itemId: ID) => HTMLElement | undefined
+  _onSetDomItemElement?: (
+    itemId: ID,
+    element: HTMLElement | null | undefined
+  ) => void
+  _onGetDomBucketElement?: (bucketId: ID) => HTMLElement | undefined
+  _onSetDomBucketElement?: (
+    bucketId: ID,
     element: HTMLElement | null | undefined
   ) => void
   // State Function
-  onStateChange?: onStateChange<TValue>
+  onStateChange?: onStateChange<TItemValue>
+  // Filter
+  onFilterEnter?: (event: KeyboardEvent) => void
   // Global Filter
   onGlobalFilterChange?: OnChangeFn<any>
 }
 
-export type ResolvedOptions<TValue> = RequiredKeys<
-  Options<TValue>,
-  | 'remainingBucket'
-  | 'debugAll'
-  | 'debugInput'
-  | '_onGetDomElement'
-  | '_onSetDomElement'
-  | 'onStateChange'
-  | 'onGlobalFilterChange'
->
+export type ResolvedOptions<TItemValue> = Required<Options<TItemValue>>
 
-export type BucketElement<TValue> = Bucket & {
+export type BucketElement<TItemValue> = Bucket & {
   id: number
-  // ref: (ref: HTMLUListElement | null) => void
+  getDomElement: () => HTMLElement | undefined
+  setDomElement: (element: HTMLElement | null) => void
   showMoveLeft: boolean
   showMoveRight: boolean
-  items: BucketItemElement<TValue>[]
+  items: BucketItemElement<TItemValue>[]
   onDragOver: (e: any /*React.DragEvent<HTMLUListElement>*/) => void
 }
 
-export type BucketItemElement<TValue> = BucketItem<TValue> & {
+export type BucketItemElement<TItemValue> = BucketItem<TItemValue> & {
   id: number
   getDomElement: () => HTMLElement | undefined
   setDomElement: (element: HTMLElement | null) => void

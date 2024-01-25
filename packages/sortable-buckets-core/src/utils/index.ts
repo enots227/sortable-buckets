@@ -7,11 +7,11 @@ import {
   ResolvedBucketItem,
 } from '../types'
 
-export function prepareState<TValue>(
-  simpleState: SimpleInputState<TValue>
-): InputState<TValue> {
+export function prepareState<TItemValue>(
+  simpleState: SimpleInputState<TItemValue>
+): InputState<TItemValue> {
   const defaultState: Omit<
-    InputState<TValue>,
+    InputState<TItemValue>,
     'matrix' | 'buckets' | 'items'
   > = {
     dragging: null,
@@ -19,7 +19,7 @@ export function prepareState<TValue>(
     filterFocusIndex: -1,
     filterResults: [],
   }
-  const state: InputState<TValue> = {
+  const state: InputState<TItemValue> = {
     ...defaultState,
     ...simpleState,
     items: simpleState.items.map(item => {
@@ -33,11 +33,15 @@ export function prepareState<TValue>(
           'the item provided does not have an id nor is the value of type string or number to be used as the id'
         )
       }
-      return <ResolvedBucketItem<TValue>>{
+      return <ResolvedBucketItem<TItemValue>>{
         ...item,
         id: item.id ?? item.value,
       }
     }),
+    buckets: simpleState.buckets.map(bucket => ({
+      ...bucket,
+      title: bucket.title ?? <string>bucket.id,
+    })),
   }
   return state
 }
@@ -47,12 +51,12 @@ export function prepareState<TValue>(
  * @param options The core input options
  * @returns The data with the remaining items added to a bucket
  */
-export function addRemainingValues<TValue>(
-  valueMatrix: TValue[][],
+export function addRemainingValues<TItemValue>(
+  valueMatrix: TItemValue[][],
   buckets: Bucket[],
-  items: BucketItem<TValue>[],
+  items: BucketItem<TItemValue>[],
   remainingBucketIndex?: number
-): TValue[][] {
+): TItemValue[][] {
   const result = buckets.map((_, b) => valueMatrix[b] ?? [])
 
   const index = remainingBucketIndex ?? buckets.length - 1

@@ -8,7 +8,10 @@ import { highlightText } from './utils/highlightText'
 
 import './CustomInput.css'
 
-const buckets: Bucket[] = [{ title: 'Active' }, { title: 'Inactive' }]
+const buckets: Bucket[] = [
+  { id: 1, title: 'Active' },
+  { id: 0, title: 'Inactive' },
+]
 
 const items: BucketItem<number>[] = [
   { title: 'a', value: 1 },
@@ -49,8 +52,8 @@ const MySortableItemBucketInput = () => {
         <Form.Control
           type="text"
           placeholder="Search"
-          // onChange={input.onSearchChange}
-          // onKeyUp={input.onSearchEnter}
+          onChange={event => input.setGlobalFilter(event.target.value)}
+          onKeyUp={input.onFilterEnter}
         />
         {input.isFiltering() && (
           <label>
@@ -65,7 +68,7 @@ const MySortableItemBucketInput = () => {
               <h6 className="d-flex justify-content-center text-muted">
                 {bucket.title}
               </h6>
-              <ul /*ref={bucket.ref}*/ onDragOver={bucket.onDragOver}>
+              <ul ref={bucket.setDomElement} onDragOver={bucket.onDragOver}>
                 {bucket.items.map(item => {
                   return (
                     <li

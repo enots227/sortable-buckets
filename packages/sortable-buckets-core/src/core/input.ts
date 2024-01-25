@@ -8,13 +8,14 @@ import {
   Updater,
   ResolvedOptions,
   BucketItemIndexPair,
-  ItemID,
+  ID,
   ResolvedBucketItem,
+  BucketItemIDPair,
 } from '../types'
 
-export function createSortableBuckets<TValue>(
-  options: Options<TValue>
-): InputInstance<TValue> {
+export function createSortableBuckets<TItemValue>(
+  options: Options<TItemValue>
+): InputInstance<TItemValue> {
   if (options.debugAll || options.debugInput) {
     console.info('Creating Sortable Buckets Input Instance...')
   }
@@ -24,22 +25,31 @@ export function createSortableBuckets<TValue>(
   }
 
   const lastBucketIndex = options.state.buckets.length - 1
-  const defaultOptions: Omit<ResolvedOptions<TValue>, 'state'> = {
+  const defaultOptions: Omit<ResolvedOptions<TItemValue>, 'state'> = {
     remainingBucket: lastBucketIndex,
     debugAll: false,
     debugInput: false,
-    _onGetDomElement: (_itemId: ItemID): HTMLElement | undefined => {
+    _onGetDomItemElement: (_itemId: ID): HTMLElement | undefined => {
       return
     },
-    _onSetDomElement: (
-      _itemID: ItemID,
+    _onSetDomItemElement: (
+      _itemID: ID,
       _element: HTMLElement | null | undefined
     ): void => {},
-    onStateChange: (_updater: Updater<InputState<TValue>>): void => {},
+    _onGetDomBucketElement: (_bucketId: ID): HTMLElement | undefined => {
+      return
+    },
+    _onSetDomBucketElement: (
+      _bucketId: ID,
+      _element: HTMLElement | null | undefined
+    ): void => {},
+    onStateChange: (_updater: Updater<InputState<TItemValue>>): void => {},
+    // Filter
+    onFilterEnter: (_event: KeyboardEvent): void => {},
     // Global Filter
     onGlobalFilterChange: (_updater: any): void => {},
   }
-  const resolvedOptions: ResolvedOptions<TValue> = {
+  const resolvedOptions: ResolvedOptions<TItemValue> = {
     ...defaultOptions,
     ...options,
   }
@@ -47,7 +57,7 @@ export function createSortableBuckets<TValue>(
   const state = resolvedOptions.state
   const setState = resolvedOptions.onStateChange
 
-  const cloneBucket = (bucketIndex: number): ItemID[] => {
+  const cloneBucket = (bucketIndex: number): ID[] => {
     const bucketValues = state.matrix[bucketIndex]
     if (bucketValues === undefined) {
       throw new Error(
@@ -58,7 +68,7 @@ export function createSortableBuckets<TValue>(
   }
 
   const onDragStart = (
-    item: ResolvedBucketItem<TValue>,
+    item: ResolvedBucketItem<TItemValue>,
     indexPair: BucketItemIndexPair
   ) => {
     setState(currentState => {
@@ -146,10 +156,10 @@ export function createSortableBuckets<TValue>(
     if (!bucketItems) return -1
     const draggableElements = bucketItems
       .filter(
-        (_itemId: ItemID, itemIndex: number) => itemIndex !== currentItemIndex
+        (_itemId: ID, itemIndex: number) => itemIndex !== currentItemIndex
       )
-      .map((itemId: ItemID) => {
-        return resolvedOptions._onGetDomElement(itemId)
+      .map((itemId: ID) => {
+        return resolvedOptions._onGetDomItemElement(itemId)
       })
     return draggableElements.reduce(
       (
@@ -174,19 +184,21 @@ export function createSortableBuckets<TValue>(
     ).itemIndex
   }
 
-  const instance: InputInstance<TValue> = {
+  const isFiltering = (): boolean => {
+    return state.globalFilter.length > 0
+  }
+
+  const instance: InputInstance<TItemValue> = {
     options: resolvedOptions,
     initialState: structuredClone(state),
-    isFiltering: (): boolean => {
-      return state.globalFilter.length > 0
-    },
+    isFiltering,
     reset: function (): void {
       instance.setState(instance.initialState)
     },
-    setOptions: function (newOptions: Updater<Options<TValue>>): void {
+    setOptions: function (newOptions: Updater<Options<TItemValue>>): void {
       throw new Error('Function not implemented.')
     },
-    getState: function (): InputState<TValue> {
+    getState: function (): InputState<TItemValue> {
       return state
     },
     setState,
@@ -196,30 +208,33 @@ export function createSortableBuckets<TValue>(
     getItemFromIndexPair: function ([
       bucketIndex,
       itemIndex,
-    ]: BucketItemIndexPair): ResolvedBucketItem<TValue> | undefined {
+    ]: BucketItemIndexPair): ResolvedBucketItem<TItemValue> | undefined {
       const bucketItemIds = state.matrix[bucketIndex]
       if (bucketItemIds === undefined) return undefined
       return instance.getItem(bucketItemIds[itemIndex])
     },
     getItem: function (
-      itemId: ItemID | undefined
-    ): ResolvedBucketItem<TValue> | undefined {
+      itemId: ID | undefined
+    ): ResolvedBucketItem<TItemValue> | undefined {
       return state.items.find(i => i.id === itemId)
     },
-    getBuckets: (): BucketElement<TValue>[] => {
-      return state.buckets.reduce<BucketElement<TValue>[]>(
+    getBuckets: (): BucketElement<TItemValue>[] => {
+      return state.buckets.reduce<BucketElement<TItemValue>[]>(
         (acc, bucket, bucketIndex) => {
           const values = state.matrix[bucketIndex] ?? []
 
           acc.push({
             ...bucket,
             id: bucketIndex,
-            // ref: (ref: HTMLUListElement | null) => bucketRefs.current[b] = ref,
+            getDomElement: () =>
+              resolvedOptions._onGetDomBucketElement(bucket.id),
+            setDomElement: element =>
+              resolvedOptions._onSetDomBucketElement(bucket.id, element),
             showMoveLeft: bucketIndex > 0,
             showMoveRight: bucketIndex < state.buckets.length - 1,
             onDragOver: (e: any /*React.DragEvent<HTMLUListElement>*/) =>
               onDragOver(bucketIndex, e),
-            items: values.reduce<BucketItemElement<TValue>[]>(
+            items: values.reduce<BucketItemElement<TItemValue>[]>(
               (items, itemId, itemIndex) => {
                 const item = instance.getItem(itemId)
 
@@ -237,9 +252,9 @@ export function createSortableBuckets<TValue>(
 
                   id: itemIndex,
                   getDomElement: () =>
-                    resolvedOptions._onGetDomElement(item.id),
+                    resolvedOptions._onGetDomItemElement(item.id),
                   setDomElement: element =>
-                    resolvedOptions._onSetDomElement(item.id, element),
+                    resolvedOptions._onSetDomItemElement(item.id, element),
 
                   isDragging: false, //dragging === val,
                   onDragStart: () => onDragStart(item, bucketItemIndexPair),
@@ -261,9 +276,7 @@ export function createSortableBuckets<TValue>(
                   isFilterFocus:
                     inGlobalFilter &&
                     state.filterFocusIndex ===
-                      state.filterResults.findIndex(
-                        i => i[0] === bucketIndex && i[1] === itemIndex
-                      ),
+                      state.filterResults.findIndex(ids => ids[1] === item.id),
                 })
 
                 return items
@@ -280,7 +293,7 @@ export function createSortableBuckets<TValue>(
     moveItemToBucket: (
       [bucketIndex, itemIndex]: BucketItemIndexPair,
       bucketAdjustment: number,
-      itemId?: ItemID
+      itemId?: ID
     ) => {
       const bucketValues = cloneBucket(bucketIndex)
 
@@ -322,6 +335,83 @@ export function createSortableBuckets<TValue>(
           matrix,
         }
       })
+    },
+    clearFilters: () => {
+      setState(currentState => ({
+        ...currentState,
+        globalFilter: '',
+        filterFocusIndex: -1,
+        filterResults: [],
+      }))
+      resolvedOptions.onGlobalFilterChange('')
+    },
+    setGlobalFilter: (search: string) => {
+      if (!search) {
+        if (isFiltering()) {
+          instance.clearFilters()
+        }
+        return
+      }
+      if (search === state.globalFilter) return
+
+      const searchValue = search.toLowerCase()
+      const result = state.buckets.reduce<BucketItemIDPair[]>(
+        (acc, bucket, bucketIndex) => {
+          const itemIds = state.matrix[bucketIndex] ?? []
+          const resultInBucket = itemIds
+            .filter(itemId => {
+              const item = instance.getItem(itemId)
+              return item?.title.toLowerCase().includes(searchValue)
+            })
+            .map(itemId => [bucket.id, itemId] as const)
+          if (resultInBucket.length > 0) acc.push(...resultInBucket)
+          return acc
+        },
+        []
+      )
+
+      setState(currentState => ({
+        ...currentState,
+        globalFilter: search,
+        filterFocusIndex: -1,
+        filterResults: result,
+      }))
+    },
+    onFilterEnter: (event: { key: string }) => {
+      if (
+        isFiltering() &&
+        event.key === 'Enter' &&
+        state.filterResults.length > 0
+      ) {
+        // get next result to focus
+        const nextFocus =
+          state.filterFocusIndex + 1 >= state.filterResults.length
+            ? 0
+            : state.filterFocusIndex + 1
+        setState(currentState => {
+          return {
+            ...currentState,
+            filterFocusIndex: nextFocus,
+          }
+        })
+
+        // scroll to result
+        const focusId = state.filterResults[nextFocus]
+        if (!focusId) return
+        const [focusBucketId, focusItemId] = focusId
+        const itemElement = resolvedOptions._onGetDomItemElement(focusItemId)
+        if (!itemElement) return
+        const bucketElement =
+          resolvedOptions._onGetDomBucketElement(focusBucketId)
+        if (!bucketElement) return
+        const gbox = bucketElement.getBoundingClientRect()
+        const ibox = itemElement.getBoundingClientRect()
+        bucketElement.scrollTop =
+          itemElement.offsetTop -
+          bucketElement.offsetTop -
+          gbox.height / 2 +
+          ibox.height / 2
+      }
     },
   }
 
