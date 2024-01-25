@@ -1,34 +1,42 @@
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import {
   createSortableBuckets as createInput,
   addRemainingValues,
-  Options
+  Options,
+  BucketItemIndexPair,
+  onStateChange,
+  ItemID,
+  prepareState,
+  InputState,
+  SimpleInputState,
 } from 'sortable-buckets-core'
 
-export function createSortableBuckets<TValue>(options: Options<TValue>) {
-  const [tableRef] = useState(() => ({
-    current: createInput<TValue>(options),
-  }))
-
-  // By default, manage table state here using the table's initial state
-  const [state, setState] = useState(() => tableRef.current.initialState)
-
-  // Compose the default state above with any user state. This will allow the user
-  // to only control a subset of the state if desired.
-  tableRef.current.setOptions(prev => ({
-    ...prev,
+export function useSortableBuckets<TValue>(
+  options: Omit<Options<TValue>, 'state'> & { state: SimpleInputState<TValue> }
+) {
+  const [state, setState] = useState<InputState<TValue>>(() =>
+    prepareState(options.state)
+  )
+  const itemElementRef = useRef<{ [itemValue: string]: HTMLElement }>({})
+  return createInput<TValue>({
     ...options,
-    state: {
-      ...state,
-      ...options.state,
-    },
+    state,
     // Similarly, we'll maintain both our internal state and any user-provided
     // state.
+    _onGetDomElement: (itemId: ItemID) => {
+      return itemElementRef.current[itemId]
+    },
+    _onSetDomElement: (
+      itemId: ItemID,
+      element: HTMLElement | null | undefined
+    ) => {
+      if (!element) return
+
+      itemElementRef.current[itemId] = element
+    },
     onStateChange: updater => {
       setState(updater)
       options.onStateChange?.(updater)
     },
-  }))
-
-  return tableRef.current
+  })
 }

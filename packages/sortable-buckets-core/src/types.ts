@@ -1,6 +1,10 @@
-export interface BucketItem<TValue> {
+export type BucketItem<TValue> = {
   title: string
   value: TValue
+} & (TValue extends ItemID ? { id?: ItemID } : { id: ItemID })
+
+export type ResolvedBucketItem<TValue> = Omit<BucketItem<TValue>, 'id'> & {
+  id: ItemID
 }
 
 export type Bucket = {
@@ -13,7 +17,12 @@ export type RequiredKeys<T, K extends keyof T> = Omit<T, K> &
 export type Updater<T> = T | ((old: T) => T)
 export type OnChangeFn<T> = (updaterOrValue: Updater<T>) => void
 
-export type BucketItemIndexPair = [bucketIndex: number, itemIndex: number]
+export type BucketItemIndexPair = readonly [
+  bucketIndex: number,
+  itemIndex: number,
+]
+
+export type ItemID = string | number
 
 export type InputInstance<TValue> = {
   initialState: InputState<TValue>
@@ -27,60 +36,74 @@ export type InputInstance<TValue> = {
   getBucket: (bucketIndex: number) => Bucket
   getItemFromIndexPair: (
     indexPair: BucketItemIndexPair
-  ) => BucketItem<TValue> | undefined
+  ) => ResolvedBucketItem<TValue> | undefined
   /**
    * Get the bucket item from a value
    * @param itemValue The value of the bucket item
    * @returns The bucket item
    */
-  getItemFromValue: (
-    itemValue: TValue | undefined
-  ) => BucketItem<TValue> | undefined
-  getBuckets: () => Bucket[]
+  getItem: (id: ItemID | undefined) => ResolvedBucketItem<TValue> | undefined
+  getBuckets: () => BucketElement<TValue>[]
   /**
    * Moves a value from one bucket to another depending on the adjustment value
-   * @param index The posiition of the item to move
+   * @param bucketItemIndexPair The posiition of the item to move
    * @param index_0 The index of the bucket
    * @param index_1 The index of the item in the bucket
-   * @param bucketAdjustment The amount to adjust the bucket index by
-   * @param itemValue The value of the item being moved if not set will be retrieved from the index
+   * @param adjustBucketIndex The amount to adjust the bucket index by
+   * @param _itemValue The value of the item at the bucketItemIndexPair (internal use only - speeds up result by not locating the value using the bucketItemIndexPair against the matrix)
    */
   moveItemToBucket: (
-    index: BucketItemIndexPair,
-    bucketAdjustment: number,
-    itemValue?: TValue
+    bucketItemIndexPair: BucketItemIndexPair,
+    adjustBucketIndex: number,
+    _itemId?: ItemID
   ) => void
 }
 
 export type InputState<TValue> = {
   // Core
-  matrix: TValue[][]
+  matrix: ItemID[][]
   buckets: Bucket[]
-  items: BucketItem<TValue>[]
-  dragging: TValue | null
+  items: ResolvedBucketItem<TValue>[]
+  dragging: {
+    item: ResolvedBucketItem<TValue>
+    indexPair: BucketItemIndexPair
+  } | null
   // Filters
   globalFilter: string
-  filterFocusIndex: number | undefined
+  filterFocusIndex: number
   filterResults: BucketItemIndexPair[]
 }
-export type InitialInputState<TValue> = PartialKeys<
-  InputState<TValue>,
-  'dragging' | 'globalFilter'
->
+export type SimpleInputState<TValue> = PartialKeys<
+  Omit<InputState<TValue>, 'items' | 'dragging' | 'filterResults'>,
+  'globalFilter' | 'filterFocusIndex'
+> & { items: BucketItem<TValue>[] }
 
+export type onStateChange<TValue> = OnChangeFn<InputState<TValue>>
 export type Options<TValue> = {
-  state: InitialInputState<TValue>
+  state: InputState<TValue>
   remainingBucket?: number
   debugAll?: boolean
   debugInput?: boolean
-  onStateChange?: OnChangeFn<InputState<TValue>>
+  _onGetDomElement?: (itemId: ItemID) => HTMLElement | undefined
+  _onSetDomElement?: (
+    itemId: ItemID,
+    element: HTMLElement | null | undefined
+  ) => void
+  // State Function
+  onStateChange?: onStateChange<TValue>
   // Global Filter
   onGlobalFilterChange?: OnChangeFn<any>
 }
 
 export type ResolvedOptions<TValue> = RequiredKeys<
   Options<TValue>,
-  'remainingBucket' | 'debugAll' | 'debugInput' | 'onGlobalFilterChange'
+  | 'remainingBucket'
+  | 'debugAll'
+  | 'debugInput'
+  | '_onGetDomElement'
+  | '_onSetDomElement'
+  | 'onStateChange'
+  | 'onGlobalFilterChange'
 >
 
 export type BucketElement<TValue> = Bucket & {
@@ -94,15 +117,16 @@ export type BucketElement<TValue> = Bucket & {
 
 export type BucketItemElement<TValue> = BucketItem<TValue> & {
   id: number
-  // ref: (ref: HTMLLIElement | null) => void
+  getDomElement: () => HTMLElement | undefined
+  setDomElement: (element: HTMLElement | null) => void
 
   isDragging: boolean
   onDragStart: (e: any /*React.DragEvent<HTMLLIElement>*/) => void
   onDragEnd: (e: any /*React.DragEvent<HTMLLIElement>*/) => void
 
-  onMove: (adj: number) => void
-  onMoveLeft: () => void
-  onMoveRight: () => void
+  moveItemToBucket: (adjustBucketIndex: number) => void
+  moveItemToLeftBucket: () => void
+  moveItemToRightBucket: () => void
 
   inFilter: boolean
   inGlobalFilter: boolean
