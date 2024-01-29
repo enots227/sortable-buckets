@@ -1,7 +1,11 @@
 import React from 'react'
 import { Form, Button, InputGroup } from 'react-bootstrap'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faCaretLeft, faCaretRight } from '@fortawesome/free-solid-svg-icons'
+import {
+  faCaretLeft,
+  faCaretRight,
+  faCropSimple,
+} from '@fortawesome/free-solid-svg-icons'
 import { Bucket, BucketItem } from 'sortable-buckets-core'
 import { useSortableBuckets } from 'sortable-buckets-react'
 import { highlightText } from './utils/highlightText'
@@ -44,7 +48,6 @@ const MySortableItemBucketInput = () => {
       items,
     },
   })
-  const state = input.getState()
 
   return (
     <div className="orderable-toggler">
@@ -57,7 +60,8 @@ const MySortableItemBucketInput = () => {
         />
         {input.isFiltering() && (
           <label>
-            {state.filterFocusIndex + 1} / {state.filterResults.length}
+            {input.options.state.filterFocusIndex + 1} /{' '}
+            {input.options.state.filterResults.length}
           </label>
         )}
       </div>
@@ -76,7 +80,7 @@ const MySortableItemBucketInput = () => {
                       className={
                         'orderable-togger-item' +
                         (item.inFilter ? ' orderable-togger-item-found' : '') +
-                        (item.isDragging
+                        (item.isDragging()
                           ? ' orderable-toggler-item-dragging'
                           : '') +
                         (item.isFilterFocus
@@ -102,8 +106,8 @@ const MySortableItemBucketInput = () => {
                             if (input.isFiltering()) {
                               if (item.inFilter) {
                                 return highlightText(
-                                  item.title,
-                                  state.globalFilter
+                                  item.title ?? '',
+                                  input.options.state.globalFilter
                                 )
                               }
                               return item.title

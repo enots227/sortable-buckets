@@ -1,17 +1,22 @@
-import { sourceMapsEnabled } from 'process'
 import {
   Bucket,
   BucketItem,
-  SimpleInputState,
   InputState,
+  ResolvedInputState,
   ResolvedBucketItem,
 } from '../types'
 
+/**
+ * Prepares the state
+ * * Adding the id to the items if not provided and the value is of type string or number
+ * @param state The state provided by the user
+ * @returns
+ */
 export function prepareState<TItemValue>(
-  simpleState: SimpleInputState<TItemValue>
-): InputState<TItemValue> {
+  state: InputState<TItemValue>
+): ResolvedInputState<TItemValue> {
   const defaultState: Omit<
-    InputState<TItemValue>,
+    ResolvedInputState<TItemValue>,
     'matrix' | 'buckets' | 'items'
   > = {
     dragging: null,
@@ -19,10 +24,10 @@ export function prepareState<TItemValue>(
     filterFocusIndex: -1,
     filterResults: [],
   }
-  const state: InputState<TItemValue> = {
+  const resolvedState: ResolvedInputState<TItemValue> = {
     ...defaultState,
-    ...simpleState,
-    items: simpleState.items.map(item => {
+    ...state,
+    items: state.items.map(item => {
       const valueType = typeof item.value
       if (
         item.id === undefined &&
@@ -38,17 +43,18 @@ export function prepareState<TItemValue>(
         id: item.id ?? item.value,
       }
     }),
-    buckets: simpleState.buckets.map(bucket => ({
+    buckets: state.buckets.map(bucket => ({
       ...bucket,
-      title: bucket.title ?? <string>bucket.id,
+      title: bucket.title ?? bucket.id.toString(),
     })),
   }
-  return state
+  return resolvedState
 }
 
 /**
- * Adds the remaining items to a specified bucket if not specified the last bucket
+ * Adds the remaining items to a specified bucket, if no bucket specified the last bucket
  * @param options The core input options
+ * @throws Error if the remainingBucketIndex provided does not exist
  * @returns The data with the remaining items added to a bucket
  */
 export function addRemainingValues<TItemValue>(

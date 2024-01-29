@@ -1,6 +1,11 @@
 import React from 'react'
 
 export function highlightText(text: string, search: string) {
+  if (!search) {
+    console.warn('highlightText: search is empty')
+    return text
+  }
+
   let res: React.ReactNode[] = []
   let str = text.toLowerCase()
   search = search.toLowerCase()

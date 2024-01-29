@@ -4,15 +4,40 @@ import {
   BucketItemElement,
   Options,
   InputInstance,
-  InputState,
+  ResolvedInputState,
   Updater,
   ResolvedOptions,
   BucketItemIndexPair,
   ID,
   ResolvedBucketItem,
   BucketItemIDPair,
+  ElementCategory,
 } from '../types'
 
+/**
+ * Creates an instance of sortable buckets.
+ *
+ * @param options The options for creating sortable buckets.
+ * @returns The created instance of sortable buckets.
+ *
+ * @throws Throws an error if the length of the matrix and buckets in the state are not the same.
+ *
+ * @example
+ * const options = {
+ *   state: {
+ *     matrix: [[1, 2]],
+ *     buckets: [
+ *         { id: 1 },
+ *         { id: 2 }
+ *     ]
+ *     items: [
+ *         { value: 1, title: 'Item 1' },
+ *         { value: 2, title: 'Item 2' }
+ *     ]
+ *   }
+ * };
+ * const instance = createSortableBuckets(options);
+ */
 export function createSortableBuckets<TItemValue>(
   options: Options<TItemValue>
 ): InputInstance<TItemValue> {
@@ -29,36 +54,68 @@ export function createSortableBuckets<TItemValue>(
     remainingBucket: lastBucketIndex,
     debugAll: false,
     debugInput: false,
-    _onGetDomItemElement: (_itemId: ID): HTMLElement | undefined => {
+    _onGetDomElement: (
+      _category: ElementCategory,
+      _id: ID
+    ): HTMLElement | undefined => {
+      // noop
       return
     },
-    _onSetDomItemElement: (
-      _itemID: ID,
+    _onSetDomElement: (
+      _category: ElementCategory,
+      _id: ID,
       _element: HTMLElement | null | undefined
-    ): void => {},
-    _onGetDomBucketElement: (_bucketId: ID): HTMLElement | undefined => {
-      return
-    },
-    _onSetDomBucketElement: (
-      _bucketId: ID,
-      _element: HTMLElement | null | undefined
-    ): void => {},
-    onStateChange: (_updater: Updater<InputState<TItemValue>>): void => {},
+    ): void => {}, // noop
+    onStateChange: (
+      _updater: Updater<ResolvedInputState<TItemValue>>
+    ): void => {}, // noop
     // Filter
-    onFilterEnter: (_event: KeyboardEvent): void => {},
+    onFilterEnter: (_event: KeyboardEvent): void => {}, // noop
     // Global Filter
-    onGlobalFilterChange: (_updater: any): void => {},
+    onGlobalFilterChange: (_updater: any): void => {}, // noop
   }
   const resolvedOptions: ResolvedOptions<TItemValue> = {
     ...defaultOptions,
     ...options,
   }
 
-  const state = resolvedOptions.state
-  const setState = resolvedOptions.onStateChange
+  /**
+   * Sets the state of the input.
+   *
+   * @param updater A function or a new state value to update the input state.
+   *
+   * @example
+   * setState(currentState => {
+   *  return {
+   *   ...currentState,
+   *   dragging: {
+   *       item: currentState.dragging.item,
+   *       indexPair: [newBucketIndex, newItemIndex],
+   *   },
+   * });
+   */
+  const setState = (updater: Updater<ResolvedInputState<TItemValue>>): void => {
+    instance.options.state =
+      typeof updater === 'function'
+        ? updater(instance.options.state)
+        : instance.options.state
+    resolvedOptions.onStateChange(instance.options.state)
+  }
 
+  /**
+   * Clones the values of a bucket.
+   *
+   * @param bucketIndex The index of the bucket to clone.
+   *
+   * @returns An array containing the cloned values of the bucket.
+   *
+   * @throws Error if the bucketIndex does not exist.
+   *
+   * @example
+   * const bucketValues = cloneBucket(bucketIndex);
+   */
   const cloneBucket = (bucketIndex: number): ID[] => {
-    const bucketValues = state.matrix[bucketIndex]
+    const bucketValues = instance.options.state.matrix[bucketIndex]
     if (bucketValues === undefined) {
       throw new Error(
         '[cloneBucket] bucketIndex does not exist: ' + bucketIndex
@@ -67,6 +124,15 @@ export function createSortableBuckets<TItemValue>(
     return [...bucketValues]
   }
 
+  /**
+   * Handles the drag start event, setting the dragging state.
+   *
+   * @param item The item being dragged.
+   * @param indexPair The bucket item index pair of the item being dragged.
+   *
+   * @example
+   * onDragStart(item, itemIndexPair);
+   */
   const onDragStart = (
     item: ResolvedBucketItem<TItemValue>,
     indexPair: BucketItemIndexPair
@@ -82,7 +148,14 @@ export function createSortableBuckets<TItemValue>(
     })
   }
 
+  /**
+   * Handles the drag end event, clearing the dragging state.
+   *
+   * @example
+   * onDragEnd();
+   */
   const onDragEnd = () => {
+    console.log('onDragEnd')
     setState(currentState => {
       return {
         ...currentState,
@@ -91,24 +164,33 @@ export function createSortableBuckets<TItemValue>(
     })
   }
 
+  /**
+   * Handles the drag over event, moving the item being dragged to the new bucket.
+   * @param newBucketIndex The index of the new bucket.
+   * @param event The drag over event (determines the location of the item in the bucket).
+   *
+   * @example
+   * onDragOver(newBucketIndex, event);
+   */
   const onDragOver = (
     newBucketIndex: number,
-    e: any /* React.DragEvent<HTMLUListElement>*/
-  ) => {
-    if (!state.dragging) return
+    event: { clientY: number }
+  ): void => {
+    if (!instance.options.state.dragging) return
 
-    const [currentBucketIndex, currentItemIndex] = state.dragging.indexPair
+    const [currentBucketIndex, currentItemIndex] =
+      instance.options.state.dragging.indexPair
     const afterElement = getDragAfterElement(
       newBucketIndex,
       currentItemIndex,
-      e.clientY
+      event.clientY
     )
     if (
       currentBucketIndex === newBucketIndex &&
       afterElement === currentItemIndex
     )
       return
-    const matrix = [...state.matrix]
+    const matrix = [...instance.options.state.matrix]
     const currentBucket = matrix[currentBucketIndex]
     if (!currentBucket) {
       throw new Error('[onDragOver] the current bucket does not exist')
@@ -123,11 +205,11 @@ export function createSortableBuckets<TItemValue>(
     let newItemIndex = -1
     if (afterElement === -1) {
       // add to new group
-      newBucket.push(state.dragging.item.id)
+      newBucket.push(instance.options.state.dragging.item.id)
       newItemIndex = newBucket.length - 1
     } else {
       // adjust position in group
-      newBucket.splice(afterElement, 0, state.dragging.item.id)
+      newBucket.splice(afterElement, 0, instance.options.state.dragging.item.id)
       newItemIndex = afterElement
     }
     setState(currentState => {
@@ -147,19 +229,28 @@ export function createSortableBuckets<TItemValue>(
     })
   }
 
+  /**
+   * Determines the item index to place the dragged item after.
+   * @param newBucketIndex The index of the new bucket.
+   * @param currentItemIndex The index of the current item.
+   * @param y The y position of the mouse.
+   * @returns The index of the item to place the dragged item after.
+   * @example
+   * const afterElement = getDragAfterElement(newBucketIndex, currentItemIndex, y);
+   */
   const getDragAfterElement = (
     newBucketIndex: number,
     currentItemIndex: number,
     y: number
-  ) => {
-    const bucketItems = state.matrix[newBucketIndex]
+  ): number => {
+    const bucketItems = instance.options.state.matrix[newBucketIndex]
     if (!bucketItems) return -1
     const draggableElements = bucketItems
       .filter(
         (_itemId: ID, itemIndex: number) => itemIndex !== currentItemIndex
       )
       .map((itemId: ID) => {
-        return resolvedOptions._onGetDomItemElement(itemId)
+        return resolvedOptions._onGetDomElement('items', itemId)
       })
     return draggableElements.reduce(
       (
@@ -184,56 +275,52 @@ export function createSortableBuckets<TItemValue>(
     ).itemIndex
   }
 
-  const isFiltering = (): boolean => {
-    return state.globalFilter.length > 0
-  }
-
   const instance: InputInstance<TItemValue> = {
     options: resolvedOptions,
-    initialState: structuredClone(state),
-    isFiltering,
+    initialState: structuredClone(resolvedOptions.state),
+    isFiltering: (): boolean => {
+      return instance.options.state.globalFilter.length > 0
+    },
     reset: function (): void {
       instance.setState(instance.initialState)
     },
-    setOptions: function (newOptions: Updater<Options<TItemValue>>): void {
-      throw new Error('Function not implemented.')
-    },
-    getState: function (): InputState<TItemValue> {
-      return state
+    getState: function (): ResolvedInputState<TItemValue> {
+      return instance.options.state
     },
     setState,
-    getBucket: function (bucketIndex: number): Bucket {
-      throw new Error('Function not implemented.')
+    getBucket: function (bucketId: ID): Bucket | undefined {
+      return instance.options.state.buckets.find(b => b.id === bucketId)
     },
     getItemFromIndexPair: function ([
       bucketIndex,
       itemIndex,
     ]: BucketItemIndexPair): ResolvedBucketItem<TItemValue> | undefined {
-      const bucketItemIds = state.matrix[bucketIndex]
+      const bucketItemIds = instance.options.state.matrix[bucketIndex]
       if (bucketItemIds === undefined) return undefined
       return instance.getItem(bucketItemIds[itemIndex])
     },
     getItem: function (
       itemId: ID | undefined
     ): ResolvedBucketItem<TItemValue> | undefined {
-      return state.items.find(i => i.id === itemId)
+      return instance.options.state.items.find(i => i.id === itemId)
     },
     getBuckets: (): BucketElement<TItemValue>[] => {
-      return state.buckets.reduce<BucketElement<TItemValue>[]>(
+      return instance.options.state.buckets.reduce<BucketElement<TItemValue>[]>(
         (acc, bucket, bucketIndex) => {
-          const values = state.matrix[bucketIndex] ?? []
+          const values = instance.options.state.matrix[bucketIndex] ?? []
 
           acc.push({
             ...bucket,
-            id: bucketIndex,
+            index: bucketIndex,
             getDomElement: () =>
-              resolvedOptions._onGetDomBucketElement(bucket.id),
+              resolvedOptions._onGetDomElement('buckets', bucket.id),
             setDomElement: element =>
-              resolvedOptions._onSetDomBucketElement(bucket.id, element),
+              resolvedOptions._onSetDomElement('buckets', bucket.id, element),
             showMoveLeft: bucketIndex > 0,
-            showMoveRight: bucketIndex < state.buckets.length - 1,
-            onDragOver: (e: any /*React.DragEvent<HTMLUListElement>*/) =>
-              onDragOver(bucketIndex, e),
+            showMoveRight:
+              bucketIndex < instance.options.state.buckets.length - 1,
+            onDragOver: (event: { clientY: number }) =>
+              onDragOver(bucketIndex, event),
             items: values.reduce<BucketItemElement<TItemValue>[]>(
               (items, itemId, itemIndex) => {
                 const item = instance.getItem(itemId)
@@ -243,20 +330,21 @@ export function createSortableBuckets<TItemValue>(
                 const bucketItemIndexPair = [bucketIndex, itemIndex] as const
                 const inGlobalFilter =
                   instance.isFiltering() &&
+                  item.title !== undefined &&
                   item.title
                     .toLowerCase()
-                    .includes(state.globalFilter.toLowerCase())
+                    .includes(instance.options.state.globalFilter)
 
                 items.push({
                   ...item,
-
-                  id: itemIndex,
+                  index: itemIndex,
                   getDomElement: () =>
-                    resolvedOptions._onGetDomItemElement(item.id),
+                    resolvedOptions._onGetDomElement('items', item.id),
                   setDomElement: element =>
-                    resolvedOptions._onSetDomItemElement(item.id, element),
+                    resolvedOptions._onSetDomElement('items', item.id, element),
 
-                  isDragging: false, //dragging === val,
+                  isDragging: () =>
+                    instance.options.state.dragging?.item.id === item.id,
                   onDragStart: () => onDragStart(item, bucketItemIndexPair),
                   onDragEnd,
 
@@ -275,8 +363,10 @@ export function createSortableBuckets<TItemValue>(
                   inGlobalFilter,
                   isFilterFocus:
                     inGlobalFilter &&
-                    state.filterFocusIndex ===
-                      state.filterResults.findIndex(ids => ids[1] === item.id),
+                    instance.options.state.filterFocusIndex ===
+                      instance.options.state.filterResults.findIndex(
+                        ids => ids[1] === item.id
+                      ),
                 })
 
                 return items
@@ -347,21 +437,21 @@ export function createSortableBuckets<TItemValue>(
     },
     setGlobalFilter: (search: string) => {
       if (!search) {
-        if (isFiltering()) {
+        if (instance.isFiltering()) {
           instance.clearFilters()
         }
         return
       }
-      if (search === state.globalFilter) return
+      if (search === instance.options.state.globalFilter) return
 
       const searchValue = search.toLowerCase()
-      const result = state.buckets.reduce<BucketItemIDPair[]>(
+      const result = instance.options.state.buckets.reduce<BucketItemIDPair[]>(
         (acc, bucket, bucketIndex) => {
-          const itemIds = state.matrix[bucketIndex] ?? []
+          const itemIds = instance.options.state.matrix[bucketIndex] ?? []
           const resultInBucket = itemIds
             .filter(itemId => {
               const item = instance.getItem(itemId)
-              return item?.title.toLowerCase().includes(searchValue)
+              return item?.title?.toLowerCase().includes(searchValue)
             })
             .map(itemId => [bucket.id, itemId] as const)
           if (resultInBucket.length > 0) acc.push(...resultInBucket)
@@ -379,15 +469,16 @@ export function createSortableBuckets<TItemValue>(
     },
     onFilterEnter: (event: { key: string }) => {
       if (
-        isFiltering() &&
+        instance.isFiltering() &&
         event.key === 'Enter' &&
-        state.filterResults.length > 0
+        instance.options.state.filterResults.length > 0
       ) {
         // get next result to focus
         const nextFocus =
-          state.filterFocusIndex + 1 >= state.filterResults.length
+          instance.options.state.filterFocusIndex + 1 >=
+          instance.options.state.filterResults.length
             ? 0
-            : state.filterFocusIndex + 1
+            : instance.options.state.filterFocusIndex + 1
         setState(currentState => {
           return {
             ...currentState,
@@ -396,13 +487,18 @@ export function createSortableBuckets<TItemValue>(
         })
 
         // scroll to result
-        const focusId = state.filterResults[nextFocus]
+        const focusId = instance.options.state.filterResults[nextFocus]
         if (!focusId) return
         const [focusBucketId, focusItemId] = focusId
-        const itemElement = resolvedOptions._onGetDomItemElement(focusItemId)
+        const itemElement = resolvedOptions._onGetDomElement(
+          'items',
+          focusItemId
+        )
         if (!itemElement) return
-        const bucketElement =
-          resolvedOptions._onGetDomBucketElement(focusBucketId)
+        const bucketElement = resolvedOptions._onGetDomElement(
+          'buckets',
+          focusBucketId
+        )
         if (!bucketElement) return
         const gbox = bucketElement.getBoundingClientRect()
         const ibox = itemElement.getBoundingClientRect()
