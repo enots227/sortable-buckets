@@ -101,7 +101,10 @@ const MySortableItemBucketInput = () => {
                             <FontAwesomeIcon icon={faCaretLeft} />
                           </Button>
                         )}
-                        <div className="orderable-toggler-item-content-2">
+                        <div
+                          className="orderable-toggler-item-content-2"
+                          onDragOver={e => e.stopPropagation()}
+                        >
                           {(() => {
                             if (input.isFiltering()) {
                               if (item.inFilter) {

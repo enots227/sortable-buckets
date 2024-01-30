@@ -193,8 +193,9 @@ export function createSortableBuckets<TItemValue>(
    * onDragEnd();
    */
   const onDragEnd = () => {
-    console.log('onDragEnd')
     const result = interimDragState
+
+    // revert real dom manipulation to restore virtual dom state
     if (result?.dragging.original.afterElement) {
       result.dragging.original.parentElement.insertBefore(
         result.dragging.domElement,
@@ -205,9 +206,13 @@ export function createSortableBuckets<TItemValue>(
         result.dragging.domElement
       )
     }
+
+    // clear interim state
     interimDragState = undefined
+
+    // update virtual dom and trigger re-render
     if (result === undefined) {
-      // console.log('onDragEnd: result is undefined')
+      // no interim state, clear dragging state
       setState(currentState => {
         return {
           ...currentState,
@@ -216,7 +221,7 @@ export function createSortableBuckets<TItemValue>(
       })
       return
     }
-    console.log('onDragEnd: result', result)
+    // update state with new matrix
     setState(currentState => {
       return {
         ...currentState,
@@ -234,7 +239,6 @@ export function createSortableBuckets<TItemValue>(
    * @example
    * onDragOver(newBucketIndex, event);
    */
-  let i = 0
   const onDragOver = (
     newBucketIndex: number,
     newBucketId: ID,
@@ -254,36 +258,12 @@ export function createSortableBuckets<TItemValue>(
       currentItemIndex,
       event.clientY
     )
-    console.log(
-      'newBucketIndex',
-      newBucketIndex,
-      'afterItemIndex',
-      afterItemIndex,
-      'afterElement',
-      afterElement?.outerText,
-      'matrix',
-      JSON.stringify(interimDragState?.matrix),
-      'indexPair',
-      interimDragState?.dragging.indexPair,
-      'itemId',
-      interimDragState?.dragging.itemId,
-      'y',
 
-      event.clientY,
-      currentBucketIndex === newBucketIndex &&
-        currentItemIndex === afterItemIndex
-        ? 'NO move'
-        : 'move'
-    )
     if (
       currentBucketIndex === newBucketIndex &&
       currentItemIndex === afterItemIndex
     )
       return
-    // i++
-    // if (i > 1) {
-    //   return
-    // }
     const matrix = [...interimState.matrix]
     const currentBucket = matrix[currentBucketIndex]
     if (!currentBucket) {
@@ -293,51 +273,24 @@ export function createSortableBuckets<TItemValue>(
     if (!newBucket) {
       throw new Error('[onDragOver] the new bucket does not exist')
     }
+    // make virtual dom manipulations without triggering re-render
     // remove from group
-    // console.log(
-    //   'matrix before remove',
-    //   JSON.stringify(matrix),
-    //   currentItemIndex
-    // )
     currentBucket.splice(currentItemIndex, 1)
-    // console.log('matrix after remove', JSON.stringify(matrix))
 
     let newItemIndex = -1
     if (afterItemIndex === -1) {
       // add to new group
-      // console.log('matrix before add', JSON.stringify(matrix))
       newBucket.push(interimState.dragging.itemId)
-      // console.log('matrix after add', JSON.stringify(matrix))
       newItemIndex = newBucket.length - 1
     } else {
       // adjust position in group
-      // console.log('matrix before insert', JSON.stringify(matrix))
       newBucket.splice(afterItemIndex, 0, interimState.dragging.itemId)
-      // console.log('matrix after insert', JSON.stringify(matrix))
       newItemIndex = afterItemIndex
     }
     interimState.dragging.indexPair = [newBucketIndex, newItemIndex]
     interimState.matrix = matrix
-    // NEW
-    // const currentMatrixBucket =
-    //   instance.options.state.matrix[currentBucketIndex]
-    // if (!currentMatrixBucket) {
-    //   throw new Error('[onDragOver] the current matrix bucket does not exist')
-    // }
-    // const currentItemDomElement = resolvedOptions._onGetDomElement(
-    //   'items',
-    //   interimState.dragging.itemId
-    // )
-    // if (!currentItemDomElement) {
-    //   throw new Error(
-    //     '[onDragOver] the current item dom element does not exist'
-    //   )
-    // }
-    // const newMatrixBucket = instance.options.state.matrix[newBucketIndex]
-    // if (!newMatrixBucket) {
-    //   throw new Error('[onDragOver] the new matrix bucket does not exist')
-    // }
 
+    // dom manipulation
     const newBucketDomElement = resolvedOptions._onGetDomElement(
       'buckets',
       newBucketId
@@ -346,53 +299,15 @@ export function createSortableBuckets<TItemValue>(
       throw new Error('[onDragOver] the new bucket dom element does not exist')
     }
     if (afterItemIndex === -1) {
+      // add to new group
       newBucketDomElement.appendChild(interimState.dragging.domElement)
     } else {
-      // const afterItemId = newMatrixBucket[afterElement]
-      // if (!afterItemId) {
-      //   throw new Error('[onDragOver] the after item does not exist')
-      // }
-      // const afterItemDomElement = resolvedOptions._onGetDomElement(
-      //   'items',
-      //   afterItemId
-      // )
-      // if (!afterItemDomElement) {
-      //   throw new Error(
-      //     '[onDragOver] the after item dom element does not exist'
-      //   )
-      // }
-      console.log(
-        'interimState.dragging.domElement',
-        interimState.dragging.domElement.outerText,
-        'afterElement',
-        afterElement?.outerText
-      )
+      // adjust position in group
       newBucketDomElement.insertBefore(
         interimState.dragging.domElement,
         afterElement
       )
-      // interimState.dragging.domElement.insertAdjacentElement(
-      //   'afterend',
-      //   <HTMLElement>afterElement // afterItemDomElement will not be null if afterItemIndex !== -1
-      // )
     }
-
-    // replace with DOM manipulation rather than setState
-    // setState(currentState => {
-    //   if (!currentState.dragging) {
-    //     return currentState
-    //   }
-    //   let matrix = [...currentState.matrix]
-    //   matrix.splice(newBucketIndex, 1, newBucket)
-    //   return {
-    //     ...currentState,
-    //     matrix,
-    //     dragging: {
-    //       item: currentState.dragging.item,
-    //       indexPair: [newBucketIndex, newItemIndex],
-    //     },
-    //   }
-    // })
   }
 
   /**
@@ -417,16 +332,6 @@ export function createSortableBuckets<TItemValue>(
       .map((itemId: ID) => {
         return resolvedOptions._onGetDomElement('items', itemId)
       })
-    console.log(
-      'draggableElements',
-      JSON.stringify(
-        draggableElements.map(e => {
-          const box = e?.getBoundingClientRect() ?? { top: 0, height: 0 }
-          const t = box.top - box.height / 2
-          return [e?.outerText, t, y - t]
-        })
-      )
-    )
     const after = draggableElements.reduce(
       (
         closest: {
@@ -498,10 +403,7 @@ export function createSortableBuckets<TItemValue>(
             onDragOver: (event: {
               clientY: number
               preventDefault: () => void
-            }) => {
-              event.preventDefault()
-              onDragOver(bucketIndex, bucket.id, event)
-            },
+            }) => onDragOver(bucketIndex, bucket.id, event),
             items: values.reduce<BucketItemElement<TItemValue>[]>(
               (items, itemId, itemIndex) => {
                 const item = instance.getItem(itemId)
