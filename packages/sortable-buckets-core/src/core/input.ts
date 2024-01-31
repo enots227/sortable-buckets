@@ -242,10 +242,19 @@ export function createSortableBuckets<TItemValue>(
   const onDragOver = (
     newBucketIndex: number,
     newBucketId: ID,
-    event: { clientY: number }
+    event: {
+      clientY: number
+      target: EventTarget
+      preventDefault: () => void
+    }
   ): void => {
+    event.preventDefault()
+
     const interimState = interimDragState
     if (!interimState) return
+
+    if (interimState.dragging.domElement.contains(event.target as HTMLElement))
+      return
 
     const currentBucketItemIds = interimState.matrix[newBucketIndex]
     if (!currentBucketItemIds) {
@@ -402,6 +411,7 @@ export function createSortableBuckets<TItemValue>(
               bucketIndex < instance.options.state.buckets.length - 1,
             onDragOver: (event: {
               clientY: number
+              target: EventTarget
               preventDefault: () => void
             }) => onDragOver(bucketIndex, bucket.id, event),
             items: values.reduce<BucketItemElement<TItemValue>[]>(

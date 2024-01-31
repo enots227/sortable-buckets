@@ -375,7 +375,11 @@ export type BucketElement<TItemValue> = Bucket & {
    * @example
    * bucket.onDragOver(event);
    */
-  onDragOver: (event: { clientY: number; preventDefault: () => void }) => void
+  onDragOver: (event: {
+    clientY: number
+    target: EventTarget
+    preventDefault: () => void
+  }) => void
 }
 
 /**
