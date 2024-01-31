@@ -2,16 +2,16 @@ import {
   Bucket,
   BucketElement,
   BucketItemElement,
-  Options,
-  InputInstance,
-  ResolvedInputState,
-  Updater,
-  ResolvedOptions,
-  BucketItemIndexPair,
-  ID,
-  ResolvedBucketItem,
   BucketItemIDPair,
+  BucketItemIndexPair,
   ElementCategory,
+  ID,
+  InputInstance,
+  Options,
+  ResolvedBucketItem,
+  ResolvedInputState,
+  ResolvedOptions,
+  Updater,
 } from '../types'
 
 /**
@@ -42,6 +42,7 @@ export function createSortableBuckets<TItemValue>(
   options: Options<TItemValue>
 ): InputInstance<TItemValue> {
   if (options.debugAll || options.debugInput) {
+    // eslint-disable-next-line no-console
     console.info('Creating Sortable Buckets Input Instance...')
   }
 
@@ -54,6 +55,7 @@ export function createSortableBuckets<TItemValue>(
     remainingBucket: lastBucketIndex,
     debugAll: false,
     debugInput: false,
+    /* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-empty-function */
     _onGetDomElement: (
       _category: ElementCategory,
       _id: ID
@@ -72,7 +74,8 @@ export function createSortableBuckets<TItemValue>(
     // Filter
     onFilterEnter: (_event: KeyboardEvent): void => {}, // noop
     // Global Filter
-    onGlobalFilterChange: (_updater: any): void => {}, // noop
+    onGlobalFilterChange: (_updater: Updater<string>): void => {}, // noop
+    /* eslint-enable @typescript-eslint/no-unused-vars, @typescript-eslint/no-empty-function */
   }
   const resolvedOptions: ResolvedOptions<TItemValue> = {
     ...defaultOptions,
@@ -88,10 +91,7 @@ export function createSortableBuckets<TItemValue>(
    * setState(currentState => {
    *  return {
    *   ...currentState,
-   *   dragging: {
-   *       item: currentState.dragging.item,
-   *       indexPair: [newBucketIndex, newItemIndex],
-   *   },
+   *   draggingItem: currentState.draggingItem
    * });
    */
   const setState = (updater: Updater<ResolvedInputState<TItemValue>>): void => {
@@ -124,14 +124,14 @@ export function createSortableBuckets<TItemValue>(
     return [...bucketValues]
   }
 
-  let interimDragState:
+  let interimDraggingState:
     | {
         matrix: ID[][]
         dragging: {
           itemId: ID
           indexPair: BucketItemIndexPair
           domElement: HTMLElement
-          original: {
+          restore: {
             parentElement: HTMLElement
             afterElement: HTMLElement | null
           }
@@ -151,7 +151,7 @@ export function createSortableBuckets<TItemValue>(
   const onDragStart = (
     item: ResolvedBucketItem<TItemValue>,
     indexPair: BucketItemIndexPair
-  ) => {
+  ): void => {
     const dragDomElement = resolvedOptions._onGetDomElement('items', item.id)
     if (!dragDomElement) {
       throw new Error('[onDragStart] the drag dom element does not exist')
@@ -160,13 +160,13 @@ export function createSortableBuckets<TItemValue>(
     const childIndex = [...parentElement.children].findIndex(
       e => e === dragDomElement
     )
-    interimDragState = {
+    interimDraggingState = {
       matrix: structuredClone(instance.options.state.matrix),
       dragging: {
         itemId: item.id,
         indexPair,
         domElement: dragDomElement,
-        original: {
+        restore: {
           parentElement,
           afterElement:
             childIndex + 1 < parentElement.children.length
@@ -178,10 +178,7 @@ export function createSortableBuckets<TItemValue>(
     setState(currentState => {
       return {
         ...currentState,
-        dragging: {
-          item,
-          indexPair,
-        },
+        draggingItem: item,
       }
     })
   }
@@ -192,23 +189,23 @@ export function createSortableBuckets<TItemValue>(
    * @example
    * onDragEnd();
    */
-  const onDragEnd = () => {
-    const result = interimDragState
+  const onDragEnd = (): void => {
+    const result = interimDraggingState
 
     // revert real dom manipulation to restore virtual dom state
-    if (result?.dragging.original.afterElement) {
-      result.dragging.original.parentElement.insertBefore(
+    if (result?.dragging.restore.afterElement) {
+      result.dragging.restore.parentElement.insertBefore(
         result.dragging.domElement,
-        result.dragging.original.afterElement
+        result.dragging.restore.afterElement
       )
     } else {
-      result?.dragging.original.parentElement.appendChild(
+      result?.dragging.restore.parentElement.appendChild(
         result.dragging.domElement
       )
     }
 
     // clear interim state
-    interimDragState = undefined
+    interimDraggingState = undefined
 
     // update virtual dom and trigger re-render
     if (result === undefined) {
@@ -226,7 +223,7 @@ export function createSortableBuckets<TItemValue>(
       return {
         ...currentState,
         matrix: result.matrix,
-        dragging: null,
+        draggingItem: null,
       }
     })
   }
@@ -250,7 +247,7 @@ export function createSortableBuckets<TItemValue>(
   ): void => {
     event.preventDefault()
 
-    const interimState = interimDragState
+    const interimState = interimDraggingState
     if (!interimState) return
 
     if (interimState.dragging.domElement.contains(event.target as HTMLElement))
@@ -437,7 +434,7 @@ export function createSortableBuckets<TItemValue>(
                     resolvedOptions._onSetDomElement('items', item.id, element),
 
                   isDragging: () =>
-                    instance.options.state.dragging?.item.id === item.id,
+                    instance.options.state.draggingItem?.id === item.id,
                   onDragStart: () => onDragStart(item, bucketItemIndexPair),
                   onDragEnd,
 
@@ -493,6 +490,7 @@ export function createSortableBuckets<TItemValue>(
       } else {
         const indexPairValue = bucketValues[itemIndex]
         if (indexPairValue !== id) {
+          // eslint-disable-next-line no-console
           console.warn(
             `[moveItemToBucket] the bucket item index pair and the item value provided does not match\nbucketIndex: ${bucketIndex}\nitemIndex: ${itemIndex}\nindexPairValue: ${indexPairValue}\nitemId: ${id}`
           )

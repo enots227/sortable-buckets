@@ -1,17 +1,23 @@
 // @ts-check
+/* eslint-disable @typescript-eslint/explicit-function-return-type */
 
 import { resolve } from 'node:path'
+
 import { babel } from '@rollup/plugin-babel'
-import { visualizer } from 'rollup-plugin-visualizer'
-import terser from '@rollup/plugin-terser'
-// @ts-expect-error
-import size from 'rollup-plugin-size'
-import replace from '@rollup/plugin-replace'
 import { nodeResolve } from '@rollup/plugin-node-resolve'
+import replace from '@rollup/plugin-replace'
+import terser from '@rollup/plugin-terser'
+// @ts-expect-error This project was heavily inspired by the TanStack Table (https://github.com/tanstack/table) open-source library. Unsure why we expect an error here.
+import size from 'rollup-plugin-size'
+import { visualizer } from 'rollup-plugin-visualizer'
+
 // import svelte from "rollup-plugin-svelte";
 import { rootDir } from './config.js'
 
-/** @param {'development' | 'production'} type */
+/**
+ * @param {'development' | 'production'} type
+ * @returns {import('rollup').Plugin<any>}
+ */
 const forceEnvPlugin = type =>
   replace({
     'process.env.NODE_ENV': `"${type}"`,

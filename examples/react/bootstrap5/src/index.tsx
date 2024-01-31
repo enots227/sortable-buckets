@@ -1,13 +1,14 @@
 import React from 'react'
+import ReactDOM from 'react-dom/client'
 import { Form, Button, InputGroup } from 'react-bootstrap'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import {
-  faCaretLeft,
-  faCaretRight,
-  faCropSimple,
-} from '@fortawesome/free-solid-svg-icons'
+import { faCaretLeft, faCaretRight } from '@fortawesome/free-solid-svg-icons'
+
 import { Bucket, BucketItem } from 'sortable-buckets-core'
 import { useSortableBuckets } from 'sortable-buckets-react'
+
+import 'bootstrap/dist/css/bootstrap.min.css'
+
 import { highlightText } from './utils/highlightText'
 
 import './CustomInput.css'
@@ -40,7 +41,7 @@ const items: BucketItem<number>[] = [
 
 const defaultMatrix: number[][] = [[1, 2, 3, 4], []]
 
-const MySortableItemBucketInput = () => {
+function MySortableItemBucketInput(): React.ReactElement {
   const input = useSortableBuckets<number>({
     state: {
       matrix: defaultMatrix,
@@ -55,7 +56,7 @@ const MySortableItemBucketInput = () => {
         <Form.Control
           type="text"
           placeholder="Search"
-          onChange={event => input.setGlobalFilter(event.target.value)}
+          onChange={(event): void => input.setGlobalFilter(event.target.value)}
           onKeyUp={input.onFilterEnter}
         />
         {input.isFiltering() && (
@@ -136,4 +137,10 @@ const MySortableItemBucketInput = () => {
   )
 }
 
-export default MySortableItemBucketInput
+const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement)
+
+root.render(
+  <React.StrictMode>
+    <MySortableItemBucketInput />
+  </React.StrictMode>
+)

@@ -14,6 +14,12 @@ export type Updater<T> = T | ((old: T) => T)
 export type OnChangeFn<T> = (updaterOrValue: Updater<T>) => void
 
 /**
+ * Allows event handlers to define the event as an argument even if it is not used
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type NotUsed = any
+
+/**
  * A function that updates the state of the input from a value or a function to update the value
  */
 export type onStateChange<TItemValue> = OnChangeFn<
@@ -207,18 +213,9 @@ export type ResolvedInputState<TItemValue> = {
    */
   items: ResolvedBucketItem<TItemValue>[]
   /**
-   * The dragging state; null if not dragging
+   * The bucket item being dragged; null if not dragging
    */
-  dragging: {
-    /**
-     * The bucket item being dragged
-     */
-    item: ResolvedBucketItem<TItemValue>
-    /**
-     * The index of the bucket item being dragged
-     */
-    indexPair: BucketItemIndexPair
-  } | null
+  draggingItem: ResolvedBucketItem<TItemValue> | null
   // Filters
   /**
    * The global filter text; empty string if not filtering
@@ -241,7 +238,7 @@ export type InputState<TItemValue> = PartialKeys<
   Omit<
     ResolvedInputState<TItemValue>,
     | 'items' // allow unresolved items
-    | 'dragging' // cannot already be dragging when initialising
+    | 'draggingItem' // cannot already be dragging when initialising
     | 'filterResults' // filter results are calculated and not settable
   >,
   'globalFilter' | 'filterFocusIndex' // optional
@@ -325,7 +322,7 @@ export type Options<TItemValue> = {
    * const onGlobalFilterChange = (updaterOrValue) => { ... };
    * createSortableBuckets({ ...options, onGlobalFilterChange });
    */
-  onGlobalFilterChange?: OnChangeFn<any>
+  onGlobalFilterChange?: OnChangeFn<string>
 }
 
 /**
@@ -414,14 +411,14 @@ export type BucketItemElement<TItemValue> = BucketItem<TItemValue> & {
    * @example
    * bucketItem.onDragStart(event);
    */
-  onDragStart: (event?: any) => void
+  onDragStart: (event?: NotUsed) => void
   /**
    * Handle the drag end event
    * @param event The drag end event (not used)
    * @example
    * bucketItem.onDragEnd(event);
    */
-  onDragEnd: (event?: any) => void
+  onDragEnd: (event?: NotUsed) => void
   /**
    * Adjust the bucket index of an item
    * @param adjustBucketIndex The amount to adjust the bucket index by

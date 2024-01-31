@@ -2,8 +2,8 @@ import {
   Bucket,
   BucketItem,
   InputState,
-  ResolvedInputState,
   ResolvedBucketItem,
+  ResolvedInputState,
 } from '../types'
 
 /**
@@ -19,7 +19,7 @@ export function prepareState<TItemValue>(
     ResolvedInputState<TItemValue>,
     'matrix' | 'buckets' | 'items'
   > = {
-    dragging: null,
+    draggingItem: null,
     globalFilter: '',
     filterFocusIndex: -1,
     filterResults: [],
