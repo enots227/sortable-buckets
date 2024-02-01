@@ -1,21 +1,22 @@
-import React, { useState, useRef } from 'react'
+import { useRef, useState } from 'react'
 import {
   createSortableBuckets,
-  Options,
+  ElementCategory,
   ID,
+  InputInstance,
+  InputState,
+  Options,
   prepareState,
   ResolvedInputState,
-  InputState,
-  ElementCategory,
 } from 'sortable-buckets-core'
 
 export function useSortableBuckets<TItemValue>(
   options: Omit<Options<TItemValue>, 'state'> & {
     state: InputState<TItemValue>
   }
-) {
-  const [state, setState] = useState<ResolvedInputState<TItemValue>>(() =>
-    prepareState(options.state)
+): InputInstance<TItemValue> {
+  const [state, setState] = useState(
+    (): ResolvedInputState<TItemValue> => prepareState(options.state)
   )
   const elementRef = useRef<{
     items: { [itemId: string]: HTMLElement }

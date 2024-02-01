@@ -1,17 +1,15 @@
-import React from 'react'
-import ReactDOM from 'react-dom/client'
-import { Form, Button, InputGroup } from 'react-bootstrap'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faCaretLeft, faCaretRight } from '@fortawesome/free-solid-svg-icons'
+import 'bootstrap/dist/css/bootstrap.min.css'
+import './index.css'
 
+import { faCaretLeft, faCaretRight } from '@fortawesome/free-solid-svg-icons'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import React from 'react'
+import { Button, Form, InputGroup } from 'react-bootstrap'
+import ReactDOM from 'react-dom/client'
 import { Bucket, BucketItem } from 'sortable-buckets-core'
 import { useSortableBuckets } from 'sortable-buckets-react'
 
-import 'bootstrap/dist/css/bootstrap.min.css'
-
 import { highlightText } from './utils/highlightText'
-
-import './CustomInput.css'
 
 const buckets: Bucket[] = [
   { id: 1, title: 'Active' },
@@ -41,7 +39,7 @@ const items: BucketItem<number>[] = [
 
 const defaultMatrix: number[][] = [[1, 2, 3, 4], []]
 
-function MySortableItemBucketInput(): React.ReactElement {
+function MySortableItemBucketInput(): React.ReactNode {
   const input = useSortableBuckets<number>({
     state: {
       matrix: defaultMatrix,
@@ -103,7 +101,7 @@ function MySortableItemBucketInput(): React.ReactElement {
                           </Button>
                         )}
                         <div className="orderable-toggler-item-content-2">
-                          {(() => {
+                          {((): React.ReactNode => {
                             if (input.isFiltering()) {
                               if (item.inFilter) {
                                 return highlightText(
